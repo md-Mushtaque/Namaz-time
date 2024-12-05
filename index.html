@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namaz Times - Dynamic Location</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        header {
+            background-color: #009688;
+            color: white;
+            padding: 1rem 0;
+        }
+        h1 {
+            margin: 0;
+        }
+        #prayer-times {
+            list-style: none;
+            padding: 0;
+            margin: 2rem auto;
+            width: 300px;
+            text-align: left;
+        }
+        #prayer-times li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ddd;
+        }
+        #prayer-times li span {
+            float: right;
+        }
+        form {
+            margin: 1rem auto;
+            text-align: center;
+        }
+        form input, form button {
+            padding: 0.5rem;
+            margin: 0.5rem;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Namaz Times</h1>
+        <p id="date"></p>
+    </header>
+    <main>
+        <div id="location">Location: Munger, Bihar, India</div>
+        <form id="location-form">
+            <input type="text" id="city" placeholder="Enter City" required>
+            <input type="text" id="country" placeholder="Enter Country" required>
+            <button type="submit">Update Location</button>
+        </form>
+        <ul id="prayer-times">
+            <li>Fajr: <span id="fajr"></span></li>
+            <li>Dhuhr: <span id="dhuhr"></span></li>
+            <li>Asr: <span id="asr"></span></li>
+            <li>Maghrib: <span id="maghrib"></span></li>
+            <li>Isha: <span id="isha"></span></li>
+        </ul>
+    </main>
+    <script>
+        const API_URL = "https://api.aladhan.com/v1/timingsByCity";
+
+        // Convert 24-hour time to 12-hour AM/PM format
+        function convertTo12HourFormat(time24) {
+            const [hours, minutes] = time24.split(":");
+            const hours12 = (hours % 12) || 12; // Convert 0 to 12 for midnight
+            const amPm = hours < 12 ? "AM" : "PM";
+            return `${hours12}:${minutes} ${amPm}`;
+        }
+
+        async function fetchPrayerTimes(city, country) {
+            try {
+                const response = await fetch(`${API_URL}?city=${city}&country=${country}&method=2`);
+                const data = await response.json();
+                if (data.code === 200) {
+                    return data.data.timings;
+                } else {
+                    throw new Error(data.data);
+                }
+            } catch (error) {
+                alert("Failed to fetch prayer times. Please check the location.");
+                return null;
+            }
+        }
+
+        function updatePrayerTimes(times) {
+            if (times) {
+                document.getElementById("fajr").textContent = convertTo12HourFormat(times.Fajr);
+                document.getElementById("dhuhr").textContent = convertTo12HourFormat(times.Dhuhr);
+                document.getElementById("asr").textContent = convertTo12HourFormat(times.Asr);
+                document.getElementById("maghrib").textContent = convertTo12HourFormat(times.Maghrib);
+                document.getElementById("isha").textContent = convertTo12HourFormat(times.Isha);
+            }
+        }
+
+        function updateDate() {
+            const today = new Date();
+            document.getElementById("date").textContent = today.toDateString();
+        }
+
+        async function init(city = "Munger", country = "India") {
+            document.getElementById("location").textContent = `Location: ${city}, ${country}`;
+            const prayerTimes = await fetchPrayerTimes(city, country);
+            updateDate();
+            updatePrayerTimes(prayerTimes);
+        }
+
+        // Handle form submission
+        document.getElementById("location-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const city = document.getElementById("city").value.trim();
+            const country = document.getElementById("country").value.trim();
+            if (city && country) {
+                await init(city, country);
+            } else {
+                alert("Please enter both city and country.");
+            }
+        });
+
+        // Initialize with default location
+        init();
+    </script>
+</body>
+</html>
